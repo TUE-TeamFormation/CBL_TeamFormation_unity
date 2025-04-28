@@ -47,12 +47,26 @@ namespace RosSharp.Control
         void ReceiveROSCmd(TwistMsg cmdVel)
         {
             if (cmdVel.linear.x==0 && cmdVel.angular.z==0)
-            {rosLinear =0;
-            rosAngular=0;}
-            else
             {
-            rosLinear = (float)((float)cmdVel.linear.x+0.03); //added 0.03 to account for friction 
-            rosAngular = (float)((float)cmdVel.angular.z+0.04);
+                rosLinear =0;
+                rosAngular=0;
+            }
+
+            else if (cmdVel.linear.x<0)
+            {
+                rosLinear = (float)((float)cmdVel.linear.x-0.02);
+            } 
+            else if (cmdVel.angular.z<0)
+            { 
+                rosAngular =  (float)((float)cmdVel.angular.z-0.18);
+            }
+            else if (cmdVel.linear.x>0)
+            {
+                rosLinear = (float)((float)cmdVel.linear.x+0.02); //(float)cmdVel.linear.x ;//added 0.05 to account for friction 
+            }
+            else if (cmdVel.angular.z>0)
+            {
+                 rosAngular = (float)((float)cmdVel.angular.z+0.18); //(float)cmdVel.angular.z; //added 0.03 to acct for friction
             }
             lastCmdReceived = Time.time;
         }

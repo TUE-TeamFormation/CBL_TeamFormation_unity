@@ -5,11 +5,13 @@ TagManager:
   serializedVersion: 2
   tags:
   - robot
+  - cuboid
+  - cylinder
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Obstacle
   - Water
   - UI
   - 
