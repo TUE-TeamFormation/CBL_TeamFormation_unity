@@ -1,0 +1,2 @@
+# Starting compiling Unity.Robotics.Nav2Example.dll
+/home/mazyar/Unity/Hub/Editor/2020.3.11f1/Editor/Data/Tools/RoslynScripts/unity_csc.sh /noconfig @Temp/UnityTempFile-fe3e60a86312aeb5e95608b5a17f4d33
