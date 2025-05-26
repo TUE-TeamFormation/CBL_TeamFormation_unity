@@ -58,7 +58,7 @@ namespace RosSharp.Control
             } 
             else if (cmdVel.angular.z<0)
             { 
-                rosAngular =  (float)((float)cmdVel.angular.z-0.18);
+                rosAngular =  (float)((float)cmdVel.angular.z-0.18) * 3.0f;
             }
             else if (cmdVel.linear.x>0)
             {
@@ -66,7 +66,7 @@ namespace RosSharp.Control
             }
             else if (cmdVel.angular.z>0)
             {
-                 rosAngular = (float)((float)cmdVel.angular.z+0.18); //(float)cmdVel.angular.z; //added 0.03 to acct for friction
+                 rosAngular = (float)((float)cmdVel.angular.z+0.18) * 3.0f; //(float)cmdVel.angular.z; //added 0.03 to acct for friction
             }
             lastCmdReceived = Time.time;
         }
