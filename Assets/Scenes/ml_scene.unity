@@ -307,7 +307,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 69.553, y: -42.495, z: -19.413}
 --- !u!1001 &440246743
 PrefabInstance:
@@ -1049,7 +1049,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &980114739
 GameObject:
@@ -1542,7 +1542,7 @@ GameObject:
   - component: {fileID: 1693309716}
   - component: {fileID: 1693309715}
   m_Layer: 0
-  m_Name: Main Camera
+  m_Name: DO NOT RUN HEADLESS MODE IN EDITOR
   m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2025,7 +2025,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 3
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!20 &2111418334
 Camera:
@@ -2084,7 +2084,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_ClockMode: 0
   m_LastSetClockMode: 0
-  m_PublishRateHz: 4
   turtleBotBaseFootprint: {fileID: 2111418331}
   wallsX:
   - {fileID: 1976485821}
@@ -2106,6 +2105,7 @@ MonoBehaviour:
   - {fileID: 1743961829}
   runHeadless: 0
   headlessCount: 10000
+  m_PublishRateHz: 4
 --- !u!1 &2122142893
 GameObject:
   m_ObjectHideFlags: 0

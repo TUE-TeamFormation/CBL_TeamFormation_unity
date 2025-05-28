@@ -132,6 +132,18 @@ public class ModelDataGenerator : MonoBehaviour
         {
             Directory.CreateDirectory(outputDir);
 
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.DisplayDialog("Error", "Cannot run headless mode within Unity player!" , "Stop player");
+            UnityEditor.EditorApplication.ExitPlaymode();
+            return;
+#endif
+            if (!Application.isBatchMode)
+            {
+                Debug.LogError("Cannot run headless mode with UI attached!");
+                Application.Quit();
+                return;
+            }
+
             GetComponent<Camera>().enabled = false;
             Time.fixedDeltaTime = Mathf.Infinity;
             Application.targetFrameRate = -1; // No limit
