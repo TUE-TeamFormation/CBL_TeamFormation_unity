@@ -1204,6 +1204,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d05ea0f7e63154087b03a6a419f0d578, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_ImageTopic: camera_test
   m_PublishRateHz: 60
   m_ImageSource: {fileID: 8400000, guid: dbcb5c1b1627848bea3b91da74837c0a, type: 2}
 --- !u!1 &457066798
