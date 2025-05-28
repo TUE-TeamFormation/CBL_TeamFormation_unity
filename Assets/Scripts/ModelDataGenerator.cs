@@ -396,6 +396,8 @@ public class ModelDataGenerator : MonoBehaviour
             SegmentProfiler.End();
             Debug.Log("Done in: " + (DateTime.Now - startTime).TotalSeconds);
             SegmentProfiler.PrintReport();
+            Application.Quit();
+            return;
         }
 
         if (!runHeadless && ShouldPublishMessage && Input.GetKey(KeyCode.G))
