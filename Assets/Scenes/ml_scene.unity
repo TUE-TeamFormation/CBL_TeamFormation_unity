@@ -133,7 +133,7 @@ PrefabInstance:
     - target: {fileID: -8813707179135249586, guid: f874a1c1841714946a6dc0810e58cffd, type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
-      objectReference: {fileID: 2100000, guid: fc5d067c2feb9c74ebac30e7af5ed051, type: 2}
+      objectReference: {fileID: 2100000, guid: 2821ea2316f74499c8e3c1ad42b89148, type: 2}
     - target: {fileID: -8679921383154817045, guid: f874a1c1841714946a6dc0810e58cffd, type: 3}
       propertyPath: m_RootOrder
       value: 16
@@ -2103,8 +2103,8 @@ MonoBehaviour:
   trackedNonTrashEntities:
   - {fileID: 440246744}
   - {fileID: 1743961829}
-  runHeadless: 0
-  headlessCount: 10000
+  runHeadless: 1
+  headlessCount: 100000
   m_PublishRateHz: 4
 --- !u!1 &2122142893
 GameObject:
