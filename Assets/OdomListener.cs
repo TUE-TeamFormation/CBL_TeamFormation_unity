@@ -69,7 +69,6 @@ public class OdomListener : MonoBehaviour
     public float BlendFactorRotation = 0.512f;
     public float BlendFactorPosition = 0.5f;
     private float InitialYPosition = 0.0f;
-    //double lastPoseStamp = -1.0;
 
     void OdomCallback(OdometryMsg msg)
     {
@@ -77,15 +76,9 @@ public class OdomListener : MonoBehaviour
         m_TwistLinearVel = msg.twist.twist.linear.From<FLU>();
         m_TwistAngularVel = (float)msg.twist.twist.angular.z;
 
-
         // Get robot's yaw
         Quaternion currentPoseYaw = msg.pose.pose.orientation.From<FLU>().projectYaw();
         currentPoseYaw = ROS_TO_UNITY_YAW_OFFSET * currentPoseYaw;
-
-        //m_DeltaPoseRotation = currentPoseYaw * Quaternion.Inverse(m_LastPoseRotation);
-        //m_LastPoseRotation = currentPoseYaw;
-        //lastPoseStamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9;
-
 
         if (!m_HaveFirstPose)
         {
@@ -98,22 +91,9 @@ public class OdomListener : MonoBehaviour
             m_DeltaPoseRotation = currentPoseYaw * Quaternion.Inverse(m_LastPoseRotation);
             m_AcumPoseRotation = m_DeltaPoseRotation * m_AcumPoseRotation;
             m_LastPoseRotation = currentPoseYaw;
-
-#if NO
-            const int YAW_VAR_IDX = 5 * 6 + 5;
-            float measVar = (float)msg.pose.covariance[YAW_VAR_IDX];     // rad^2
-            float processVar = 2.3e-4f;        // tune once; ~= (deg_per_sec * dt)^2
-            float alpha = processVar / (processVar + Mathf.Max(measVar, 1e-6f));
-
-            m_AcumPoseRotation = Quaternion.Slerp(lastAcumPoseRotation, m_AcumPoseRotation, 1.0f - alpha);
-            //Debug.Log(alpha);
-#endif
         }
 
-
-
-
-
+        // Get robot's position
         Vector3 currentPosePosition = msg.pose.pose.position.From<FLU>();
         currentPosePosition = new Vector3(currentPosePosition.x, 0f, currentPosePosition.z);
 
@@ -146,16 +126,14 @@ public class OdomListener : MonoBehaviour
     {
         float dt = Time.fixedDeltaTime;
 
-#if NO
+
         /* ---------- 1. rotation: integrate, then drift-correct ---------- */
-        float deltaYawDeg = -m_TwistAngularVel * Mathf.Rad2Deg * dt; // negate for ROS->Unity handedness
-        Quaternion deltaRotation = Quaternion.AngleAxis(deltaYawDeg, Vector3.up);  // world-up
+        //float deltaYawDeg = -m_TwistAngularVel * Mathf.Rad2Deg * dt; // negate for ROS->Unity handedness
+        //Quaternion deltaRotation = Quaternion.AngleAxis(deltaYawDeg, Vector3.up);  // world-up
 
-        // Apply increment
-        Quaternion predictedRotation = deltaRotation * transform.rotation;
-        transform.rotation = Quaternion.Slerp(predictedRotation, m_LastPoseRotation, BlendFactorRotation);
-#endif
-
+        //// Apply increment
+        //Quaternion predictedRotation = deltaRotation * transform.rotation;
+        //transform.rotation = Quaternion.Slerp(predictedRotation, m_LastPoseRotation, BlendFactorRotation);
 
         // Method 2
         //Quaternion rotationQ = Quaternion.Slerp(transform.rotation, transform.rotation * deltaPoseYaw, blendFactor); // soft snap
@@ -163,7 +141,7 @@ public class OdomListener : MonoBehaviour
 
 
         // Method 3
-        transform.rotation = m_AcumPoseRotation;
+        transform.rotation = Quaternion.Slerp(transform.rotation, m_AcumPoseRotation, BlendFactorRotation); // soft snap
 
 
         /* ---------- 2. position: integrate, then drift-correct ---------- */
@@ -172,8 +150,6 @@ public class OdomListener : MonoBehaviour
         
         transform.position = Vector3.Lerp(predictedPos, m_AccumPosePosition, BlendFactorPosition);
         transform.position = new Vector3(transform.position.x, InitialYPosition, transform.position.z);
-
-        //Debug.Log(InitialYPosition);;
     }
 
     void OnApplicationQuit()           // called in Editor and builds
