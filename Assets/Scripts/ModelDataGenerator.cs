@@ -91,7 +91,7 @@ public class ModelDataGenerator : MonoBehaviour
     double m_PublishRateHz = 4f;
 
     int iterationCount = 0;
-    string outputDir = "/Volumes/Untitled/ml_training/images/";
+    string outputDir = "./ml_training/images/";
     FileStream imageFile;
 
     List<SerializableBB> boundingBoxes = new List<SerializableBB>();
@@ -100,6 +100,10 @@ public class ModelDataGenerator : MonoBehaviour
     double m_LastPublishTimeSeconds;
     double PublishPeriodSeconds => 1.0f / m_PublishRateHz;
     bool ShouldPublishMessage => Clock.FrameStartTimeInSeconds - PublishPeriodSeconds > m_LastPublishTimeSeconds;
+
+    DateTime lastConsoleLog;
+
+    private Texture2D reusableTex;
 
     void OnValidate()
     {
@@ -322,7 +326,7 @@ public class ModelDataGenerator : MonoBehaviour
 
             // Image is flipped vertically
             float height = screenBoundingBox.height;
-            screenBoundingBox.y = camera.activeTexture.height - screenBoundingBox.y - screenBoundingBox.height;
+            screenBoundingBox.y = camera.targetTexture.height - screenBoundingBox.y - screenBoundingBox.height;
             screenBoundingBox.height = height;
             boundingBoxes.Add(SerializableBB.FromRectAndLabel(screenBoundingBox,
                 trackedTrashEntities.Contains(trackedEntity) ? "trash" : "not trash"));
@@ -338,13 +342,20 @@ public class ModelDataGenerator : MonoBehaviour
 
             // Copy the image from the GPU buffers into a texture in CPU memory
             SegmentProfiler.Start("Blitting texture data GPU -> CPU");
-            Texture2D tex = new Texture2D(camera.targetTexture.width, camera.targetTexture.height, TextureFormat.RGB24, false);
-            tex.ReadPixels(new Rect(0, 0, camera.targetTexture.width, camera.targetTexture.height), 0, 0);
-            tex.Apply();
+            if (reusableTex == null ||
+                reusableTex.width != camera.targetTexture.width ||
+                reusableTex.height != camera.targetTexture.height)
+            {
+                if (reusableTex != null)
+                    UnityEngine.Object.Destroy(reusableTex);
+                reusableTex = new Texture2D(camera.targetTexture.width, camera.targetTexture.height, TextureFormat.RGB24, false);
+            }
+            reusableTex.ReadPixels(new Rect(0, 0, camera.targetTexture.width, camera.targetTexture.height), 0, 0);
+            reusableTex.Apply();
 
             // Write the file
             SegmentProfiler.Start("Copying texture to byte array");
-            byte[] texData = tex.GetRawTextureData();
+            byte[] texData = reusableTex.GetRawTextureData();
             SegmentProfiler.Start("Starting disk write");
             imageFile.WriteAsync(texData);
 
@@ -378,14 +389,23 @@ public class ModelDataGenerator : MonoBehaviour
     {
         if (runHeadless && iterationCount < headlessCount)
         {
+            lastConsoleLog = DateTime.Now;
+            Debug.Log("Starting generation...");
+
             // Show progress report every 5%
             DateTime startTime = DateTime.Now;
             int steps = headlessCount / 20;
             while (iterationCount < headlessCount)
             {
+                if ((DateTime.Now - lastConsoleLog).TotalSeconds > 60)
+                {
+                    Debug.Log($"Still running... ({iterationCount}/{headlessCount})");
+                    lastConsoleLog = DateTime.Now;
+                }
                 if (iterationCount % steps == 0)
                 {
                     Debug.Log($"Status: {iterationCount * 100 / headlessCount}%");
+                    lastConsoleLog = DateTime.Now;
                 }
                 GenerateEntry();
             }
