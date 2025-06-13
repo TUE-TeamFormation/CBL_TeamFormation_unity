@@ -42,8 +42,7 @@ public class SqlExample : MonoBehaviour
             await wrapper.InsertEntriesAsync(newEntries);
 
             // Retrieve all entries
-            Task<List<TrashEntry>> entryTask = wrapper.GetAllEntries();
-            List<TrashEntry> entries = await entryTask;
+            List<TrashEntry> entries = await wrapper.GetAllEntries();
             Debug.Log("ID  |X   |Y   |Z   |DT     |Timestamp");
             foreach (var entry in entries)
             {
