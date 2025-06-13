@@ -1,9 +1,11 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 using Unity.Robotics.ROSTCPConnector;
 using RosMessageTypes.Std;
+using CBLSqlConnectionWrapper;
 
 class BoundingBox
 {
@@ -49,11 +51,17 @@ public class ObjectDetectionFramework : MonoBehaviour
     {
         ros = ROSConnection.GetOrCreateInstance();
         ros.Subscribe<Float32MultiArrayMsg>(detectedObjectsTopic, DetectedObjectsCallback);
+
+        // TODO: Technically we should not reset the table each time we start the app
+        //       since the trash must be just stored and later to be picked.
+        ResetTable();
     }
 
     void DetectedObjectsCallback(Float32MultiArrayMsg msg)
     {
         float[] copy = (float[])msg.data.Clone();
+
+        List<GameObject> detectedGameObjects = new List<GameObject>();
 
         DetectedObjectList detectedObjectList = new DetectedObjectList(copy);
         foreach (BoundingBox bb in detectedObjectList.Objects)
@@ -65,14 +73,68 @@ public class ObjectDetectionFramework : MonoBehaviour
             //Debug.Log($"MAX: {bb.Max.x}, {bb.Max.y}");
 
             // Get the object using raycasting
-            GameObject detectedObject = GetEntityFromScreenCoord(centerOfBox);
+            GameObject detectedGameObject = GetEntityFromScreenCoord(centerOfBox);
 
-            if (detectedObject != null)
+            if (detectedGameObject != null)
             {
-                // Insert into DB
+                detectedGameObjects.Add(detectedGameObject);
             }
         }
-        //Debug.Log($"===========================");
+
+        // Insert all the detected objects in the DB
+        // TODO: Uncomment this when the ML is ready
+        //CheckAndInsertTrashData(detectedGameObjects);
+    }
+
+    async void CheckAndInsertTrashData(List<GameObject> detectedObjects)
+    {
+        SqlConnectionWrapper connection = new SqlConnectionWrapper();
+
+        // Open SQL connection (not necessary, automatic)
+        await connection.OpenConnectionAsync();
+
+        foreach (GameObject detectedObject in detectedObjects)
+        {
+            Vector3 detectedObjectPos = detectedObject.transform.position;
+
+            TrashEntry detectedTrashEntry = new TrashEntry() {
+                X = (double) detectedObjectPos.x,
+                Y = (double) detectedObjectPos.y,
+                Z = (double) detectedObjectPos.z,
+                DetectionTime = Time.realtimeSinceStartup,
+                TimeStamp = DateTime.Now
+            };
+
+            int entitiesInRadius = await connection.GetCountInRadiusAsync(detectedTrashEntry, 0.0);
+            if (entitiesInRadius == 0)
+            {
+                await connection.InsertEntriesAsync(detectedTrashEntry);
+            }
+
+            List<TrashEntry> entries = await connection.GetAllEntries();
+            Debug.Log("ID  |X   |Y   |Z   |DT     |Timestamp");
+            foreach (var entry in entries)
+            {
+                //Debug.Log(string.Format("{0}|{1}|{2}|{3}|{4}|{5}",
+                //    entry.ID.ToString().PadRight(4),
+                //    entry.X.ToString("f1").PadLeft(4),
+                //    entry.Y.ToString("f1").PadLeft(4),
+                //    entry.Z.ToString("f1").PadLeft(4),
+                //    entry.X.ToString("f1").PadLeft(7),
+                //    entry.TimeStamp.ToString()));
+                Debug.Log($"{entry.ID}, {entry.X}, {entry.Y}, {entry.Z}, {entry.DetectionTime}, {entry.TimeStamp.ToString()}");
+            }
+        }
+
+        // Close SQL connection (not necessary, automatic)
+        connection.CloseConnection();
+    }
+
+    async void ResetTable()
+    {
+        SqlConnectionWrapper connection = new SqlConnectionWrapper();
+        await connection.ResetTable();
+        connection.CloseConnection();
     }
 
     // Update is called once per frame
@@ -83,6 +145,12 @@ public class ObjectDetectionFramework : MonoBehaviour
             GameObject clickedObject = GetEntityFromScreenCoord(Input.mousePosition);
             Transform tr = clickedObject.transform;
             Debug.Log($"Clicked {clickedObject.name} at world pos {tr.position}");
+
+            List<GameObject> testList = new List<GameObject>();
+            testList.Add(clickedObject);
+
+            // TODO: Comment this when doing ML
+            CheckAndInsertTrashData(testList);
         }
     }
 

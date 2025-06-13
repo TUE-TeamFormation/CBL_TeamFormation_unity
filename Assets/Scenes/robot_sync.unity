@@ -1233,6 +1233,7 @@ GameObject:
   - component: {fileID: 607672623}
   - component: {fileID: 607672624}
   - component: {fileID: 607672625}
+  - component: {fileID: 607672626}
   m_Layer: 0
   m_Name: Follow Cam
   m_TagString: Untagged
@@ -1311,6 +1312,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   frameRate: 60
+--- !u!114 &607672626
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607672622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c483e5c9d1808546a0aa3a2ac8446bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pickableLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  detectedObjectsTopic: /detected_objects_boxes
 --- !u!1 &629714952
 GameObject:
   m_ObjectHideFlags: 0
@@ -4385,7 +4402,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1910981049}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6c483e5c9d1808546a0aa3a2ac8446bf, type: 3}
   m_Name: 

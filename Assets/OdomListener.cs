@@ -64,8 +64,6 @@ public class OdomListener : MonoBehaviour
         InitialYPosition = transformComponent.position.y;
     }
 
-    
-
     public float BlendFactorRotation = 0.512f;
     public float BlendFactorPosition = 0.5f;
     private float InitialYPosition = 0.0f;
