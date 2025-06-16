@@ -7,10 +7,13 @@ using Unity.Robotics.Core;
 using UnityEngine;
 using Unity.Robotics.ROSTCPConnector;
 using UnityEngine.Serialization;
+using RosMessageTypes.Nav;
+using static UnityEditor.PlayerSettings;
 
 public class LaserScanSensor : MonoBehaviour
 {
     public string topic;
+    public string laserScanTopic = "/scan";
     [FormerlySerializedAs("TimeBetweenScansSeconds")]
     public double PublishPeriodSeconds = 0.1;
     public float RangeMetersMin = 0;
@@ -33,11 +36,14 @@ public class LaserScanSensor : MonoBehaviour
 
     bool isScanning = false;
     double m_TimeLastScanBeganSeconds = -1;
+    
 
     protected virtual void Start()
     {
         m_Ros = ROSConnection.GetOrCreateInstance();
         m_Ros.RegisterPublisher<LaserScanMsg>(topic);
+
+        m_Ros.Subscribe<LaserScanMsg>(laserScanTopic, LaserScanCallback);
 
         m_CurrentScanAngleStart = ScanAngleStartDegrees;
         m_CurrentScanAngleEnd = ScanAngleEndDegrees;
@@ -47,10 +53,32 @@ public class LaserScanSensor : MonoBehaviour
 
     void BeginScan()
     {
+        ranges.Clear();
         isScanning = true;
         m_TimeLastScanBeganSeconds = Clock.Now;
         m_TimeNextScanSeconds = m_TimeLastScanBeganSeconds + PublishPeriodSeconds;
         m_NumMeasurementsTaken = 0;
+    }
+
+    private void LaserScanCallback(LaserScanMsg msg)
+    {
+        int rangeSize = Math.Min(msg.ranges.Length, ranges.Count);
+        double accurancy = 0.0;
+        for (int i = 0; i < rangeSize; i++)
+        {
+            //Debug.Log(i);
+            if(float.IsInfinity(msg.ranges[i]) || float.IsInfinity(ranges[i]))
+            {
+                continue;
+            }
+
+            accurancy += Math.Abs(msg.ranges[i] - ranges[i]);
+        }
+
+        if(rangeSize != 0)
+        {
+            Debug.Log(accurancy / (double)rangeSize);
+        }
     }
 
     public void EndScan()
@@ -100,10 +128,10 @@ public class LaserScanSensor : MonoBehaviour
             ranges = ranges.ToArray(),
         };
         
-        m_Ros.Publish(topic, msg);
+        //m_Ros.Publish(topic, msg);
 
         m_NumMeasurementsTaken = 0;
-        ranges.Clear();
+        
         isScanning = false;
         var now = (float)Clock.time;
         if (now > m_TimeNextScanSeconds)
