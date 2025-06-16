@@ -70,7 +70,10 @@ public class ObjectDetectionFramework : MonoBehaviour
 
     private Dictionary<int, TrashEntry> TrashEntriesDB = new Dictionary<int, TrashEntry>();
     private int LatestTrashID = 0;
+    
+    private DateTime lastSend = DateTime.Now;
 
+        SqlConnectionWrapper connection = new SqlConnectionWrapper();
 
     // Start is called before the first frame update
     void Start()
@@ -150,10 +153,9 @@ public class ObjectDetectionFramework : MonoBehaviour
 
     async void CheckAndInsertTrashData(List<GameObject> detectedObjects)
     {
-        SqlConnectionWrapper connection = new SqlConnectionWrapper();
 
         // Open SQL connection (not necessary, automatic)
-        await connection.OpenConnectionAsync();
+        //await connection.OpenConnectionAsync();
 
         foreach (GameObject detectedObject in detectedObjects)
         {
@@ -199,7 +201,6 @@ public class ObjectDetectionFramework : MonoBehaviour
 
     async void ResetTable()
     {
-        SqlConnectionWrapper connection = new SqlConnectionWrapper();
         await connection.ResetTable();
     }
 
