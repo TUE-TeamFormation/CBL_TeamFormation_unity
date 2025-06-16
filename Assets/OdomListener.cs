@@ -225,12 +225,12 @@ public class OdomListener : MonoBehaviour
 
 
         /* ---------- 1. rotation: integrate, then drift-correct ---------- */
-        //float deltaYawDeg = -m_TwistAngularVel * Mathf.Rad2Deg * dt; // negate for ROS->Unity handedness
-        //Quaternion deltaRotation = Quaternion.AngleAxis(deltaYawDeg, Vector3.up);  // world-up
+        float deltaYawDeg = -m_TwistAngularVel * Mathf.Rad2Deg * dt; // negate for ROS->Unity handedness
+        Quaternion deltaRotation = Quaternion.AngleAxis(deltaYawDeg, Vector3.up);  // world-up
 
         //// Apply increment
-        //Quaternion predictedRotation = deltaRotation * transform.rotation;
-        //transform.rotation = Quaternion.Slerp(predictedRotation, m_LastPoseRotation, BlendFactorRotation);
+        Quaternion predictedRotation = deltaRotation * transform.rotation;
+        transform.rotation = Quaternion.Slerp(predictedRotation, m_LastPoseRotation, BlendFactorRotation);
 
         // Method 2
         //Quaternion rotationQ = Quaternion.Slerp(transform.rotation, transform.rotation * deltaPoseYaw, blendFactor); // soft snap
@@ -238,7 +238,7 @@ public class OdomListener : MonoBehaviour
 
 
         // Method 3
-        transform.rotation = Quaternion.Slerp(transform.rotation, m_AcumPoseRotation, BlendFactorRotation); // soft snap
+        //transform.rotation = Quaternion.Slerp(transform.rotation, m_AcumPoseRotation, BlendFactorRotation); // soft snap
 
 
         /* ---------- 2. position: integrate, then drift-correct ---------- */

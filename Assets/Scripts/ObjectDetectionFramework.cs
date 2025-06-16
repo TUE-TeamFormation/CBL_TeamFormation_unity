@@ -6,6 +6,7 @@ using UnityEngine;
 using Unity.Robotics.ROSTCPConnector;
 using RosMessageTypes.Std;
 using CBLSqlConnectionWrapper;
+using Codice.Client.BaseCommands;
 
 class BoundingBox
 {
@@ -64,6 +65,12 @@ public class ObjectDetectionFramework : MonoBehaviour
     [SerializeField] string detectedObjectsTopic = "/detected_objects_boxes";
     ROSConnection ros;
 
+    [SerializeField] public Camera cameraMachineLearning = null;
+
+
+    private Dictionary<int, TrashEntry> TrashEntriesDB = new Dictionary<int, TrashEntry>();
+    private int LatestTrashID = 0;
+
 
     // Start is called before the first frame update
     void Start()
@@ -85,6 +92,11 @@ public class ObjectDetectionFramework : MonoBehaviour
         DetectedObjectList detectedObjectList = new DetectedObjectList(copy);
         foreach (BoundingBox bb in detectedObjectList.Objects)
         {
+            float minY = cameraMachineLearning.pixelHeight - bb.Max.y;
+            float maxY = cameraMachineLearning.pixelHeight - bb.Min.y;
+            bb.Min.y = minY;
+            bb.Max.y = maxY;
+
             Vector2 centerOfBox = bb.Min + ((bb.Max - bb.Min) / 2);
 
             //Debug.Log($"CENTER: {centerOfBox.x}, {centerOfBox.y}");
@@ -96,13 +108,44 @@ public class ObjectDetectionFramework : MonoBehaviour
 
             if (detectedGameObject != null)
             {
-                detectedGameObjects.Add(detectedGameObject);
+                if(detectedGameObject.name.Contains("trash"))
+                {
+                    detectedGameObjects.Add(detectedGameObject);
+                }
             }
         }
 
         // Insert all the detected objects in the DB
         // TODO: Uncomment this when the ML is ready
-        //CheckAndInsertTrashData(detectedGameObjects);
+        CheckAndInsertTrashData(detectedGameObjects);
+    }
+
+    private void InsertToLocalDB(TrashEntry trashEntry)
+    {
+        TrashEntriesDB.Add(LatestTrashID, trashEntry);
+        LatestTrashID++;
+    }
+
+    private int GetCountInRadius(TrashEntry trashEntry, double radius)
+    {
+        int entitiesInRadius = 0;
+        
+        foreach (var kv in TrashEntriesDB)
+        {
+            //Vector3 trashEntryPos = new Vector3((float)kv.Value.X, (float)kv.Value.Y, (float)kv.Value.Z);
+            double range = Math.Sqrt(
+                Math.Pow(trashEntry.X - kv.Value.X, 2) +
+                Math.Pow(trashEntry.Y - kv.Value.Y, 2) +
+                Math.Pow(trashEntry.Z - kv.Value.Z, 2)
+            );
+
+            if (range <= radius)
+            {
+                entitiesInRadius++;
+            }
+        }
+
+        return entitiesInRadius;
     }
 
     async void CheckAndInsertTrashData(List<GameObject> detectedObjects)
@@ -124,25 +167,33 @@ public class ObjectDetectionFramework : MonoBehaviour
                 TimeStamp = DateTime.Now
             };
 
-            int entitiesInRadius = await connection.GetCountInRadiusAsync(detectedTrashEntry, 0.0);
+            
+            //int entitiesInRadius = await connection.GetCountInRadiusAsync(detectedTrashEntry, 0.1);
+            
+            // Waiting for the DB is too slow, so instead we are going to use a local DB with the current made changes
+            int entitiesInRadius = GetCountInRadius(detectedTrashEntry, 0.1);
+
             if (entitiesInRadius == 0)
             {
+                InsertToLocalDB(detectedTrashEntry);
                 await connection.InsertEntriesAsync(detectedTrashEntry);
+
+                List<TrashEntry> entries = await connection.GetAllEntries();
+                Debug.Log("ID  |X   |Y   |Z   |DT     |Timestamp");
+                foreach (var entry in entries)
+                {
+                    //Debug.Log(string.Format("{0}|{1}|{2}|{3}|{4}|{5}",
+                    //    entry.ID.ToString().PadRight(4),
+                    //    entry.X.ToString("f1").PadLeft(4),
+                    //    entry.Y.ToString("f1").PadLeft(4),
+                    //    entry.Z.ToString("f1").PadLeft(4),
+                    //    entry.X.ToString("f1").PadLeft(7),
+                    //    entry.TimeStamp.ToString()));
+                    Debug.Log($"{entry.ID}, {entry.X}, {entry.Y}, {entry.Z}, {entry.DetectionTime}, {entry.TimeStamp.ToString()}");
+                }
             }
 
-            List<TrashEntry> entries = await connection.GetAllEntries();
-            Debug.Log("ID  |X   |Y   |Z   |DT     |Timestamp");
-            foreach (var entry in entries)
-            {
-                //Debug.Log(string.Format("{0}|{1}|{2}|{3}|{4}|{5}",
-                //    entry.ID.ToString().PadRight(4),
-                //    entry.X.ToString("f1").PadLeft(4),
-                //    entry.Y.ToString("f1").PadLeft(4),
-                //    entry.Z.ToString("f1").PadLeft(4),
-                //    entry.X.ToString("f1").PadLeft(7),
-                //    entry.TimeStamp.ToString()));
-                Debug.Log($"{entry.ID}, {entry.X}, {entry.Y}, {entry.Z}, {entry.DetectionTime}, {entry.TimeStamp.ToString()}");
-            }
+            
         }
 
         // Close SQL connection (not necessary, automatic)
@@ -161,22 +212,25 @@ public class ObjectDetectionFramework : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            GameObject clickedObject = GetEntityFromScreenCoord(Input.mousePosition);
-            Transform tr = clickedObject.transform;
-            Debug.Log($"Clicked {clickedObject.name} at world pos {tr.position}");
+            //GameObject clickedObject = GetEntityFromScreenCoord(Input.mousePosition);
+            //Transform tr = clickedObject.transform;
+            //Debug.Log($"Clicked {clickedObject.name} at world pos {tr.position}");
 
-            List<GameObject> testList = new List<GameObject>();
-            testList.Add(clickedObject);
+
+            //Debug.Log($"{Input.mousePosition.x}, {Input.mousePosition.y}");
+
+            //List<GameObject> testList = new List<GameObject>();
+            //testList.Add(clickedObject);
 
             // TODO: Comment this when doing ML
-            CheckAndInsertTrashData(testList);
+            //CheckAndInsertTrashData(testList);
         }
     }
 
     GameObject GetEntityFromScreenCoord(Vector2 inputScreenPosition)
     {
-        Camera cam = GetComponent<Camera>();
-        Ray ray = cam.ScreenPointToRay(inputScreenPosition);
+        //Camera cam = GetComponent<Camera>();
+        Ray ray = cameraMachineLearning.ScreenPointToRay(inputScreenPosition);
 
         if (Physics.Raycast(ray, out RaycastHit hitInfo, Mathf.Infinity, pickableLayers))
         {
