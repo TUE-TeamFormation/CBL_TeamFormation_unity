@@ -20,6 +20,8 @@ public class StampedPose
 
     public Vector3 position;          //  Unity world metres
     public Quaternion rotation;       //  already FLU->Unity corrected
+    public Vector3 linearVelocity;
+    public float angularVelocity;
 }
 
 [System.Serializable]
@@ -37,7 +39,12 @@ public class OdomListener : MonoBehaviour
     [SerializeField] string odomTopic = "/odom";
     ROSConnection ros;
 
-    PoseLogWrapper log = new();
+    [SerializeField] bool loadLogFile = false;
+    [SerializeField] string logFilePath = "/odom";
+
+    PoseLogWrapper m_LogPoses = new();
+    int m_LogPoseIterator = 0;
+
     float m_LastOdomCallbackTime = -1f;
 
     Transform transformComponent = null;
@@ -57,11 +64,45 @@ public class OdomListener : MonoBehaviour
 
     void Start()
     {
-        ros = ROSConnection.GetOrCreateInstance();
-        ros.Subscribe<OdometryMsg>(odomTopic, OdomCallback);
-
         transformComponent = GetComponent<Transform>();
         InitialYPosition = transformComponent.position.y;
+
+        if(loadLogFile)
+        {
+            LoadLogFile();
+        }
+        else
+        {
+            ros = ROSConnection.GetOrCreateInstance();
+            ros.Subscribe<OdometryMsg>(odomTopic, OdomCallback);
+        }
+    }
+
+    public void LoadLogFile()
+    {
+        string fullPath = logFilePath;
+
+        if (!File.Exists(fullPath))
+        {
+            Debug.LogError($"[OdomListener] Could not find log file at: {fullPath}");
+            return;
+        }
+
+        try
+        {
+            // 2. Read raw JSON text
+            string json = File.ReadAllText(fullPath);
+
+            // 3. Deserialize back into our wrapper class
+            m_LogPoses = JsonUtility.FromJson<PoseLogWrapper>(json);
+
+            Debug.Log($"[OdomListener] Loaded {m_LogPoses.poses.Count} poses from {fullPath}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[OdomListener] Failed to load log file!\n{e}");
+        }
+
     }
 
     public float BlendFactorRotation = 0.512f;
@@ -113,16 +154,74 @@ public class OdomListener : MonoBehaviour
         entry.timeInUnity = Time.realtimeSinceStartup;
         entry.position = currentPosePosition;
         entry.rotation = currentPoseYaw;
+        entry.linearVelocity = m_TwistLinearVel;
+        entry.angularVelocity = m_TwistAngularVel;
 
         entry.timeTillPreviousCallback = (m_LastOdomCallbackTime < 0f) ? 0f : entry.timeInUnity - m_LastOdomCallbackTime;
         m_LastOdomCallbackTime = entry.timeInUnity;
 
-        log.poses.Add(entry);
+        m_LogPoses.poses.Add(entry);
+    }
+
+    void LogPoseCallback()
+    {
+        if(m_LogPoseIterator >= m_LogPoses.poses.Count)
+        {
+            Debug.Log("Robot motion has finished!");
+            return;
+        }
+
+        if(Time.realtimeSinceStartup > m_LogPoses.poses[m_LogPoseIterator].timeInUnity)
+        {
+            // Get Linear/Angualar velocities
+            m_TwistLinearVel = m_LogPoses.poses[m_LogPoseIterator].linearVelocity;
+            m_TwistAngularVel = m_LogPoses.poses[m_LogPoseIterator].angularVelocity;
+
+            // Get robot's yaw
+            Quaternion currentPoseYaw = m_LogPoses.poses[m_LogPoseIterator].rotation;
+
+            if (!m_HaveFirstPose)
+            {
+                m_LastPoseRotation = currentPoseYaw;
+            }
+            else
+            {
+                Quaternion lastAcumPoseRotation = m_AcumPoseRotation;
+
+                m_DeltaPoseRotation = currentPoseYaw * Quaternion.Inverse(m_LastPoseRotation);
+                m_AcumPoseRotation = m_DeltaPoseRotation * m_AcumPoseRotation;
+                m_LastPoseRotation = currentPoseYaw;
+            }
+
+            // Get robot's position
+            Vector3 currentPosePosition = m_LogPoses.poses[m_LogPoseIterator].position;
+            currentPosePosition = new Vector3(currentPosePosition.x, 0f, currentPosePosition.z);
+
+            if (!m_HaveFirstPose)
+            {
+                m_LastPosePosition = currentPosePosition;
+                m_HaveFirstPose = true;
+            }
+            else
+            {
+                m_DeltaPosePosition = currentPosePosition - m_LastPosePosition;
+                m_AccumPosePosition += m_DeltaPosePosition;
+                m_LastPosePosition = currentPosePosition;
+            }
+
+
+            m_LogPoseIterator++;
+        }
     }
 
     void FixedUpdate()
     {
         float dt = Time.fixedDeltaTime;
+
+        if(loadLogFile)
+        {
+            LogPoseCallback();
+        }
 
 
         /* ---------- 1. rotation: integrate, then drift-correct ---------- */
@@ -152,13 +251,19 @@ public class OdomListener : MonoBehaviour
 
     void OnApplicationQuit()           // called in Editor and builds
     {
-        string json = JsonUtility.ToJson(log, true);
+        if(loadLogFile)
+        {
+            return;
+        }
+
+
+        string json = JsonUtility.ToJson(m_LogPoses, true);
 
         string stamp = System.DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss.fff");
         string filePath = $"Log_Poses/odom_{stamp}.json";
 
         File.WriteAllText(filePath, json);
-        Debug.Log($"[OdomRecorder] Saved {log.poses.Count} poses to {filePath}");
+        Debug.Log($"[OdomRecorder] Saved {m_LogPoses.poses.Count} poses to {filePath}");
     }
 }
 
