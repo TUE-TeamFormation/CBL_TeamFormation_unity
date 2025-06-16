@@ -153,7 +153,7 @@ public class ObjectDetectionFramework : MonoBehaviour
         SqlConnectionWrapper connection = new SqlConnectionWrapper();
 
         // Open SQL connection (not necessary, automatic)
-        await connection.OpenConnectionAsync();
+        //await connection.OpenConnectionAsync();
 
         foreach (GameObject detectedObject in detectedObjects)
         {
@@ -168,10 +168,10 @@ public class ObjectDetectionFramework : MonoBehaviour
             };
 
             
-            //int entitiesInRadius = await connection.GetCountInRadiusAsync(detectedTrashEntry, 0.1);
+            int entitiesInRadius = await connection.GetCountInRadiusAsync(detectedTrashEntry, 0.1);
             
             // Waiting for the DB is too slow, so instead we are going to use a local DB with the current made changes
-            int entitiesInRadius = GetCountInRadius(detectedTrashEntry, 0.1);
+            //int entitiesInRadius = GetCountInRadius(detectedTrashEntry, 0.1);
 
             if (entitiesInRadius == 0)
             {
