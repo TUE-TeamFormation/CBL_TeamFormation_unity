@@ -2104,7 +2104,7 @@ MonoBehaviour:
   - {fileID: 440246744}
   - {fileID: 1743961829}
   runHeadless: 1
-  headlessCount: 100000
+  headlessCount: 10000
   m_PublishRateHz: 4
 --- !u!1 &2122142893
 GameObject:

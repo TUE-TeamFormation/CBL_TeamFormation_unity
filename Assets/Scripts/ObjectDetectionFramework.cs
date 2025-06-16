@@ -22,6 +22,11 @@ class DetectedObjectList
 {
     public List<BoundingBox> Objects = new List<BoundingBox>();
 
+    public DetectedObjectList()
+    {
+
+    }
+
     // Translate data from python class to C# class
     public DetectedObjectList(float[] data)
     {
@@ -34,6 +39,20 @@ class DetectedObjectList
                 new Vector2(data[i + 2], data[i + 3])
             ));
         }
+    }
+
+    public float[] ToFloatArray()
+    {
+        float[] data = new float[Objects.Count * 4];
+        for (int i = 0; i < Objects.Count; i++)
+        {
+            BoundingBox bb = Objects[i];
+            data[i * 4]     = bb.Min.x;
+            data[i * 4 + 1] = bb.Min.y;
+            data[i * 4 + 2] = bb.Max.x;
+            data[i * 4 + 3] = bb.Max.y;
+        }
+        return data;
     }
 }
 
