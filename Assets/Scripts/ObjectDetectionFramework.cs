@@ -195,16 +195,12 @@ public class ObjectDetectionFramework : MonoBehaviour
 
             
         }
-
-        // Close SQL connection (not necessary, automatic)
-        connection.CloseConnection();
     }
 
     async void ResetTable()
     {
         SqlConnectionWrapper connection = new SqlConnectionWrapper();
         await connection.ResetTable();
-        connection.CloseConnection();
     }
 
     // Update is called once per frame
